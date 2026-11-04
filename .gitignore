@@ -1,0 +1,80 @@
+# =============================================================================
+# DEVIS CAFÉ — .gitignore
+# =============================================================================
+
+# --- Dépendances ---
+node_modules
+.pnp
+.pnp.js
+
+# --- Build & Dist ---
+dist
+dist-ssr
+build
+.vite
+
+# --- Fichiers d'environnement (SENSIBLE — Ne jamais committer) ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+
+# --- Logs ---
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Éditeurs ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- TypeScript ---
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# --- ESLint & Prettier ---
+.eslintcache
+.prettiercache
+
+# --- Tests ---
+coverage
+.nyc_output
+
+# --- Supabase (si utilisé localement) ---
+.supabase
+functions/_generated
+
+# --- Azure ---
+.azure
+
+# --- Fichiers générés par l'app ---
+public/uploads/
+public/testimonials/*.jpg
+public/testimonials/*.png
+!public/testimonials/.gitkeep
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Misc ---
+*.local
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
