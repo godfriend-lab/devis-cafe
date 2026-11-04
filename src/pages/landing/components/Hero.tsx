@@ -268,7 +268,7 @@ export function Hero() {
 
         <div className="hero-rise d3 mt-9 flex flex-wrap items-center gap-x-8 gap-y-4 sm:mt-10">
           <a
-            href="/inscription"
+            href="/register"
             className="hero-cta focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
           >
             Inscrivez-vous
