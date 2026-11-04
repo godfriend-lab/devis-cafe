@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import type { FormEvent, ChangeEvent } from 'react';
+import type {
+  ButtonHTMLAttributes,
+  ChangeEvent,
+  ComponentType,
+  CSSProperties,
+  FormEvent,
+  ReactNode,
+} from 'react';
 import { Navbar } from '../landing/components/Navbar';
 import { Footer } from '../landing/components/Footer';
 import {
@@ -22,7 +29,7 @@ interface FAQItem {
   answer: string;
 }
 
-interface Feature {
+interface Step {
   label: string;
   ms: number;
 }
@@ -34,6 +41,8 @@ interface PaymentResult {
   reference?: string;
 }
 
+type PayFn = (steps: Step[], result: PaymentResult) => Promise<void>;
+
 interface CardData {
   number: string;
   name: string;
@@ -41,12 +50,7 @@ interface CardData {
   cvc: string;
 }
 
-interface CardErrors {
-  number?: string;
-  name?: string;
-  expiry?: string;
-  cvc?: string;
-}
+type CardErrors = Partial<Record<keyof CardData, string>>;
 
 interface BankDetails {
   beneficiary: string;
@@ -54,16 +58,26 @@ interface BankDetails {
   bic: string;
 }
 
+type OperatorId = 'yas' | 'moov' | 'orange' | 'mtn' | 'wave' | 'free' | 'airtel';
+
 interface Operator {
+  id: OperatorId;
+  name: string;
+  hint: string;
+}
+
+interface Country {
   id: string;
   name: string;
-  Logo: React.ComponentType<{ className?: string }>;
+  dial: string;
+  placeholder: string;
+  operators: OperatorId[];
 }
 
 interface Method {
-  id: string;
+  id: 'card' | 'paypal' | 'mobile' | 'transfer';
   label: string;
-  Icon: React.ComponentType<{ size?: number }> | null;
+  Icon: ComponentType<{ size?: number }> | null;
 }
 
 interface ProcessingStep {
@@ -71,68 +85,20 @@ interface ProcessingStep {
   progress: number;
 }
 
-interface Receipt {
+interface ReceiptData {
   reference: string;
   method: string;
   date: Date;
   pending: boolean;
 }
 
-interface FieldProps {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
+interface FormProps {
+  pay: PayFn;
+  checkEmail: () => boolean;
 }
 
-interface PayButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  children: React.ReactNode;
+interface LogoProps {
   className?: string;
-}
-
-interface CardPreviewProps {
-  number: string;
-  name: string;
-  expiry: string;
-  cvc: string;
-  brand: string | null;
-  flipped: boolean;
-}
-
-interface CardFormProps {
-  pay: (steps: Feature[], result: PaymentResult) => Promise<void>;
-  checkEmail: () => boolean;
-}
-
-interface PayPalFormProps {
-  pay: (steps: Feature[], result: PaymentResult) => Promise<void>;
-  checkEmail: () => boolean;
-}
-
-interface MobileMoneyFormProps {
-  pay: (steps: Feature[], result: PaymentResult) => Promise<void>;
-  checkEmail: () => boolean;
-}
-
-interface TransferFormProps {
-  pay: (steps: Feature[], result: PaymentResult) => Promise<void>;
-  checkEmail: () => boolean;
-  reference: string;
-}
-
-interface ProcessingOverlayProps {
-  step: ProcessingStep;
-}
-
-interface ReceiptProps {
-  receipt: Receipt;
-  email: string;
-  onReset: () => void;
-}
-
-interface FaqItemComponentProps {
-  item: FAQItem;
-  open: boolean;
-  onToggle: () => void;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -143,6 +109,9 @@ const PRICE_FCFA = 10000;
 const EUR_RATE = 655.957;
 const PRICE_EUR = PRICE_FCFA / EUR_RATE;
 const DASHBOARD_URL = '/dashboard';
+
+/** Placez yas-mixx.png et moov-money.png dans /public/payment-logos/ */
+const LOGO_PATH = '/payment-logos';
 
 const BANK: BankDetails = {
   beneficiary: 'Devis Café',
@@ -165,21 +134,87 @@ const features: string[] = [
   'Accès mobile et desktop',
 ];
 
+const OPERATORS: Record<OperatorId, Operator> = {
+  yas: {
+    id: 'yas',
+    name: 'Mixx by Yas',
+    hint: 'Validez la demande avec votre code secret Mixx by Yas.',
+  },
+  moov: {
+    id: 'moov',
+    name: 'Moov Money',
+    hint: 'Validez la demande avec votre code secret Moov Money.',
+  },
+  orange: {
+    id: 'orange',
+    name: 'Orange Money',
+    hint: 'Validez la demande avec votre code secret Orange Money.',
+  },
+  mtn: {
+    id: 'mtn',
+    name: 'MTN MoMo',
+    hint: 'Validez la demande avec votre code PIN MoMo.',
+  },
+  wave: {
+    id: 'wave',
+    name: 'Wave',
+    hint: 'Ouvrez l’application Wave pour confirmer le paiement.',
+  },
+  free: {
+    id: 'free',
+    name: 'Free Money',
+    hint: 'Validez la demande avec votre code secret Free Money.',
+  },
+  airtel: {
+    id: 'airtel',
+    name: 'Airtel Money',
+    hint: 'Validez la demande avec votre code PIN Airtel Money.',
+  },
+};
+
+const COUNTRIES: Country[] = [
+  { id: 'tg', name: 'Togo', dial: '+228', placeholder: '90 00 00 00', operators: ['yas', 'moov'] },
+  { id: 'bj', name: 'Bénin', dial: '+229', placeholder: '01 97 00 00 00', operators: ['mtn', 'moov'] },
+  {
+    id: 'ci',
+    name: 'Côte d’Ivoire',
+    dial: '+225',
+    placeholder: '07 00 00 00 00',
+    operators: ['orange', 'mtn', 'moov', 'wave'],
+  },
+  {
+    id: 'sn',
+    name: 'Sénégal',
+    dial: '+221',
+    placeholder: '77 000 00 00',
+    operators: ['orange', 'wave', 'free', 'yas'],
+  },
+  { id: 'ml', name: 'Mali', dial: '+223', placeholder: '70 00 00 00', operators: ['orange', 'moov'] },
+  { id: 'bf', name: 'Burkina Faso', dial: '+226', placeholder: '70 00 00 00', operators: ['orange', 'moov'] },
+  { id: 'ne', name: 'Niger', dial: '+227', placeholder: '90 00 00 00', operators: ['airtel', 'orange', 'moov'] },
+  { id: 'cm', name: 'Cameroun', dial: '+237', placeholder: '6 70 00 00 00', operators: ['orange', 'mtn'] },
+];
+
 const faq: FAQItem[] = [
   {
-    question: 'Y a-t-il une période d\'essai ?',
+    question: 'Y a-t-il une période d’essai ?',
     answer:
-      'Oui. Vous bénéficiez de 7 jours d\'essai gratuit avec accès à toutes les fonctionnalités. Aucune carte bancaire requise.',
+      'Oui. Vous bénéficiez de 7 jours d’essai gratuit avec accès à toutes les fonctionnalités. Aucune carte bancaire requise.',
   },
   {
     question: 'Puis-je annuler à tout moment ?',
     answer:
-      'Absolument. Vous pouvez annuler votre abonnement à tout moment. Vous conservez l\'accès jusqu\'à la fin de la période payée.',
+      'Absolument. Vous pouvez annuler votre abonnement à tout moment. Vous conservez l’accès jusqu’à la fin de la période payée.',
   },
   {
     question: 'Quels moyens de paiement acceptez-vous ?',
     answer:
-      'Les cartes Visa et Mastercard (traitées par Stripe), PayPal, Orange Money, MTN MoMo, Wave et le virement bancaire.',
+      'Les cartes Visa et Mastercard (traitées par Stripe), PayPal, le virement bancaire et le Mobile Money : Mixx by Yas, Moov Money, Orange Money, MTN MoMo, Wave, Free Money et Airtel Money selon votre pays.',
+  },
+  {
+    question: 'Dans quels pays puis-je payer par Mobile Money ?',
+    answer:
+      'Togo, Bénin, Côte d’Ivoire, Sénégal, Mali, Burkina Faso, Niger et Cameroun. Les opérateurs proposés s’adaptent automatiquement au pays que vous sélectionnez.',
   },
   {
     question: 'Mes données sont-elles sécurisées ?',
@@ -193,16 +228,10 @@ const faq: FAQItem[] = [
   },
 ];
 
-const MOBILE_OPERATORS: Operator[] = [
-  { id: 'orange', name: 'Orange Money', Logo: OrangeMoneyLogo },
-  { id: 'mtn', name: 'MTN MoMo', Logo: MtnLogo },
-  { id: 'wave', name: 'Wave', Logo: WaveLogo },
-];
-
 const METHODS: Method[] = [
   { id: 'card', label: 'Carte', Icon: CreditCard },
-  { id: 'paypal', label: 'PayPal', Icon: null },
   { id: 'mobile', label: 'Mobile Money', Icon: Smartphone },
+  { id: 'paypal', label: 'PayPal', Icon: null },
   { id: 'transfer', label: 'Virement', Icon: Landmark },
 ];
 
@@ -277,7 +306,10 @@ function validateCard(card: CardData): CardErrors {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Logos (vectoriels)                                                         */
+/*  Logos                                                                      */
+/*  Yas Mixx et Moov Africa : fichiers officiels fournis (PNG).                */
+/*  Autres opérateurs : reproductions vectorielles, à remplacer par les        */
+/*  fichiers officiels de chaque marque si vous les obtenez.                   */
 /* -------------------------------------------------------------------------- */
 
 const FONT = 'Helvetica Neue, Helvetica, Arial, sans-serif';
@@ -301,7 +333,7 @@ function VisaLogo({ className = 'h-6 w-auto', mono = false }: { className?: stri
   );
 }
 
-function MastercardLogo({ className = 'h-6 w-auto' }: { className?: string }) {
+function MastercardLogo({ className = 'h-6 w-auto' }: LogoProps) {
   return (
     <svg viewBox="0 0 40 24" role="img" aria-label="Mastercard" className={className}>
       <circle cx="14" cy="12" r="12" fill="#EB001B" />
@@ -311,7 +343,7 @@ function MastercardLogo({ className = 'h-6 w-auto' }: { className?: string }) {
   );
 }
 
-function PayPalLogo({ className = 'h-5 w-auto' }: { className?: string }) {
+function PayPalLogo({ className = 'h-5 w-auto' }: LogoProps) {
   return (
     <svg viewBox="0 0 84 22" role="img" aria-label="PayPal" className={className}>
       <text
@@ -330,7 +362,7 @@ function PayPalLogo({ className = 'h-5 w-auto' }: { className?: string }) {
   );
 }
 
-function StripeLogo({ className = 'h-5 w-auto' }: { className?: string }) {
+function StripeLogo({ className = 'h-5 w-auto' }: LogoProps) {
   return (
     <svg viewBox="0 0 60 22" role="img" aria-label="Stripe" className={className}>
       <text
@@ -348,59 +380,177 @@ function StripeLogo({ className = 'h-5 w-auto' }: { className?: string }) {
   );
 }
 
-function OrangeMoneyLogo({ className = 'h-7 w-7' }: { className?: string }) {
+/* Logos opérateurs : tous au format 2:1 (80 × 40) pour un alignement parfait */
+
+function YasMixxLogo({ className = 'h-10 w-20' }: LogoProps) {
   return (
-    <svg viewBox="0 0 32 32" role="img" aria-label="Orange Money" className={className}>
-      <rect width="32" height="32" rx="3" fill="#FF7900" />
-      <text x="3" y="28" fontFamily={FONT} fontWeight="700" fontSize="7.5" fill="#FFFFFF">
+    <img
+      src={`${LOGO_PATH}/yas-mixx.png`}
+      alt="Mixx by Yas"
+      className={`${className} rounded-lg object-cover`}
+      draggable={false}
+    />
+  );
+}
+
+function MoovLogo({ className = 'h-10 w-20' }: LogoProps) {
+  return (
+    <img
+      src={`${LOGO_PATH}/moov-money.png`}
+      alt="Moov Money"
+      className={`${className} object-contain`}
+      draggable={false}
+    />
+  );
+}
+
+function OrangeMoneyLogo({ className = 'h-10 w-20' }: LogoProps) {
+  return (
+    <svg viewBox="0 0 80 40" role="img" aria-label="Orange Money" className={`${className} rounded-lg`}>
+      <rect width="80" height="40" fill="#FF7900" />
+      <text x="7" y="19" fontFamily={FONT} fontWeight="700" fontSize="9" fill="#FFFFFF">
+        money
+      </text>
+      <text x="7" y="33" fontFamily={FONT} fontWeight="700" fontSize="14" fill="#FFFFFF">
         orange
       </text>
     </svg>
   );
 }
 
-function MtnLogo({ className = 'h-7 w-auto' }: { className?: string }) {
+function MtnLogo({ className = 'h-10 w-20' }: LogoProps) {
   return (
-    <svg viewBox="0 0 48 32" role="img" aria-label="MTN MoMo" className={className}>
-      <ellipse cx="24" cy="16" rx="23" ry="15" fill="#FFCC00" />
+    <svg viewBox="0 0 80 40" role="img" aria-label="MTN MoMo" className={`${className} rounded-lg`}>
+      <rect width="80" height="40" fill="#FFCC00" />
       <text
-        x="24"
+        x="40"
         y="21"
         textAnchor="middle"
         fontFamily={FONT}
         fontWeight="900"
-        fontSize="14"
+        fontSize="19"
         fill="#000000"
       >
         MTN
+      </text>
+      <text
+        x="40"
+        y="34"
+        textAnchor="middle"
+        fontFamily={FONT}
+        fontWeight="800"
+        fontSize="10"
+        fill="#000000"
+      >
+        MoMo
       </text>
     </svg>
   );
 }
 
-function WaveLogo({ className = 'h-7 w-7' }: { className?: string }) {
+function WaveLogo({ className = 'h-10 w-20' }: LogoProps) {
   return (
-    <svg viewBox="0 0 32 32" role="img" aria-label="Wave" className={className}>
-      <rect width="32" height="32" rx="8" fill="#1DC8FF" />
+    <svg viewBox="0 0 80 40" role="img" aria-label="Wave" className={`${className} rounded-lg`}>
+      <rect width="80" height="40" fill="#1DC8FF" />
       <path
-        d="M5 17c3-6 6-6 9 0s6 6 9 0"
+        d="M16 22c5-10 10-10 12 0s7 10 12 0 7-10 12 0 5 7 9 2"
         stroke="#FFFFFF"
-        strokeWidth="3"
+        strokeWidth="4.5"
         strokeLinecap="round"
+        strokeLinejoin="round"
         fill="none"
       />
     </svg>
   );
 }
 
+function FreeMoneyLogo({ className = 'h-10 w-20' }: LogoProps) {
+  return (
+    <svg viewBox="0 0 80 40" role="img" aria-label="Free Money" className={`${className} rounded-lg`}>
+      <rect width="80" height="40" fill="#CD1E25" />
+      <text
+        x="40"
+        y="24"
+        textAnchor="middle"
+        fontFamily={FONT}
+        fontWeight="900"
+        fontSize="22"
+        letterSpacing="-0.5"
+        fill="#FFFFFF"
+      >
+        free
+      </text>
+      <text
+        x="40"
+        y="35"
+        textAnchor="middle"
+        fontFamily={FONT}
+        fontWeight="700"
+        fontSize="8.5"
+        fill="#FFFFFF"
+      >
+        money
+      </text>
+    </svg>
+  );
+}
+
+function AirtelMoneyLogo({ className = 'h-10 w-20' }: LogoProps) {
+  return (
+    <svg viewBox="0 0 80 40" role="img" aria-label="Airtel Money" className={`${className} rounded-lg`}>
+      <rect width="80" height="40" fill="#E40000" />
+      <text
+        x="40"
+        y="23"
+        textAnchor="middle"
+        fontFamily={FONT}
+        fontWeight="800"
+        fontSize="17"
+        letterSpacing="-0.5"
+        fill="#FFFFFF"
+      >
+        airtel
+      </text>
+      <text
+        x="40"
+        y="34"
+        textAnchor="middle"
+        fontFamily={FONT}
+        fontWeight="700"
+        fontSize="8.5"
+        fill="#FFFFFF"
+      >
+        money
+      </text>
+    </svg>
+  );
+}
+
+const OPERATOR_LOGOS: Record<OperatorId, ComponentType<LogoProps>> = {
+  yas: YasMixxLogo,
+  moov: MoovLogo,
+  orange: OrangeMoneyLogo,
+  mtn: MtnLogo,
+  wave: WaveLogo,
+  free: FreeMoneyLogo,
+  airtel: AirtelMoneyLogo,
+};
+
 /* -------------------------------------------------------------------------- */
 /*  Carte bancaire interactive                                                 */
 /* -------------------------------------------------------------------------- */
 
-function CardPreview({ number, name, expiry, cvc, brand, flipped }: CardPreviewProps) {
+function CardPreview({
+  number,
+  name,
+  expiry,
+  cvc,
+  brand,
+  flipped,
+}: CardData & { brand: string | null; flipped: boolean }) {
   const masked = number.replace(/\s/g, '').padEnd(16, '•').match(/.{4}/g)?.join(' ') || '';
 
-  const face: React.CSSProperties = {
+  const face: CSSProperties = {
     backfaceVisibility: 'hidden',
     WebkitBackfaceVisibility: 'hidden',
     background: 'radial-gradient(120% 140% at 0% 0%, #1f2a44 0%, #0b1220 62%)',
@@ -436,9 +586,7 @@ function CardPreview({ number, name, expiry, cvc, brand, flipped }: CardPreviewP
             </svg>
           </div>
 
-          <div className="font-mono text-[1.15rem] tracking-[0.12em] tabular-nums sm:text-xl">
-            {masked}
-          </div>
+          <div className="font-mono text-[1.15rem] tracking-[0.12em] tabular-nums sm:text-xl">{masked}</div>
 
           <div className="flex items-end justify-between gap-4">
             <div className="min-w-0">
@@ -485,7 +633,7 @@ const inputClass = (error?: string): string =>
       : 'border-slate-200 focus:border-brand-500 focus:ring-brand-100'
   }`;
 
-function Field({ label, error, children }: FieldProps) {
+function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-sm font-medium text-slate-700">{label}</span>
@@ -495,7 +643,11 @@ function Field({ label, error, children }: FieldProps) {
   );
 }
 
-function PayButton({ children, className = '', ...props }: PayButtonProps) {
+function PayButton({
+  children,
+  className = '',
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
   return (
     <button
       type="submit"
@@ -511,14 +663,15 @@ function PayButton({ children, className = '', ...props }: PayButtonProps) {
 /*  Formulaires par moyen de paiement                                          */
 /* -------------------------------------------------------------------------- */
 
-function CardForm({ pay, checkEmail }: CardFormProps) {
+function CardForm({ pay, checkEmail }: FormProps) {
   const [card, setCard] = useState<CardData>({ number: '', name: '', expiry: '', cvc: '' });
   const [errors, setErrors] = useState<CardErrors>({});
   const [flipped, setFlipped] = useState(false);
 
   const digits = card.number.replace(/\s/g, '');
   const brand = detectBrand(digits);
-  const update = (key: keyof CardData, value: string): void => setCard((prev) => ({ ...prev, [key]: value }));
+  const update = (key: keyof CardData, value: string): void =>
+    setCard((prev) => ({ ...prev, [key]: value }));
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -536,7 +689,7 @@ function CardForm({ pay, checkEmail }: CardFormProps) {
       ],
       {
         method: `${brand === 'visa' ? 'Visa' : 'Mastercard'} •••• ${digits.slice(-4)}`,
-        failure: declined ? 'Votre carte a été refusée par l\'émetteur. Essayez une autre carte.' : '',
+        failure: declined ? 'Votre carte a été refusée par l’émetteur. Essayez une autre carte.' : '',
       },
     );
   };
@@ -574,7 +727,7 @@ function CardForm({ pay, checkEmail }: CardFormProps) {
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Date d'expiration" error={errors.expiry}>
+          <Field label="Date d’expiration" error={errors.expiry}>
             <input
               className={`${inputClass(errors.expiry)} tabular-nums`}
               inputMode="numeric"
@@ -593,7 +746,9 @@ function CardForm({ pay, checkEmail }: CardFormProps) {
               value={card.cvc}
               onFocus={() => setFlipped(true)}
               onBlur={() => setFlipped(false)}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => update('cvc', e.target.value.replace(/\D/g, '').slice(0, 3))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                update('cvc', e.target.value.replace(/\D/g, '').slice(0, 3))
+              }
             />
           </Field>
         </div>
@@ -620,7 +775,7 @@ function CardForm({ pay, checkEmail }: CardFormProps) {
   );
 }
 
-function PayPalForm({ pay, checkEmail }: PayPalFormProps) {
+function PayPalForm({ pay, checkEmail }: FormProps) {
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!checkEmail()) return;
@@ -654,78 +809,121 @@ function PayPalForm({ pay, checkEmail }: PayPalFormProps) {
   );
 }
 
-function MobileMoneyForm({ pay, checkEmail }: MobileMoneyFormProps) {
-  const [operatorId, setOperatorId] = useState('orange');
+function MobileMoneyForm({ pay, checkEmail }: FormProps) {
+  const [countryId, setCountryId] = useState('tg');
+  const [operatorId, setOperatorId] = useState<OperatorId>('yas');
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
-  const operator = MOBILE_OPERATORS.find((item) => item.id === operatorId);
+
+  const country = COUNTRIES.find((item) => item.id === countryId) ?? COUNTRIES[0];
+  const operator = OPERATORS[operatorId];
+
+  const changeCountry = (id: string): void => {
+    const next = COUNTRIES.find((item) => item.id === id) ?? COUNTRIES[0];
+    setCountryId(next.id);
+    if (!next.operators.includes(operatorId)) setOperatorId(next.operators[0]);
+    setError('');
+  };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const emailOk = checkEmail();
-    const valid = phone.replace(/\D/g, '').length >= 8;
+    const length = phone.replace(/\D/g, '').length;
+    const valid = length >= 8 && length <= 10;
     setError(valid ? '' : 'Saisissez un numéro de téléphone valide');
     if (!emailOk || !valid) return;
 
     void pay(
       [
-        { label: `Demande envoyée à ${operator?.name ?? 'Mobile Money'}`, ms: 1000 },
+        { label: `Demande envoyée à ${operator.name}`, ms: 1000 },
         { label: 'En attente de la validation sur votre téléphone', ms: 2200 },
         { label: 'Confirmation du paiement', ms: 900 },
       ],
-      { method: `${operator?.name ?? 'Mobile Money'} ${phone}` },
+      { method: `${operator.name} ${country.dial} ${phone.trim()}` },
     );
   };
 
   return (
     <form onSubmit={submit} className="space-y-6" noValidate>
+      <Field label="Pays">
+        <div className="relative">
+          <select
+            className={`${inputClass()} appearance-none pr-11`}
+            value={countryId}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => changeCountry(e.target.value)}
+          >
+            {COUNTRIES.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name} ({item.dial})
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            size={18}
+            className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+        </div>
+      </Field>
+
       <fieldset>
         <legend className="mb-2 text-sm font-medium text-slate-700">Opérateur</legend>
-        <div className="grid grid-cols-3 gap-3">
-          {MOBILE_OPERATORS.map(({ id, name, Logo }) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={operatorId === id}
-              onClick={() => setOperatorId(id)}
-              className={`flex h-24 flex-col items-center justify-center gap-2 rounded-xl border text-sm font-medium transition focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-100 ${
-                operatorId === id
-                  ? 'border-brand-500 bg-brand-50 text-slate-900'
-                  : 'border-slate-200 text-slate-600 hover:border-slate-300'
-              }`}
-            >
-              <Logo />
-              {name}
-            </button>
-          ))}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {country.operators.map((id) => {
+            const Logo = OPERATOR_LOGOS[id];
+            const selected = operatorId === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setOperatorId(id)}
+                className={`relative flex h-28 flex-col items-center justify-center gap-3 rounded-2xl border bg-white text-sm font-medium transition focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-100 ${
+                  selected
+                    ? 'border-slate-950 text-slate-950 ring-1 ring-slate-950'
+                    : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                {selected && (
+                  <span className="absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-950">
+                    <Check size={12} strokeWidth={3} className="text-white" />
+                  </span>
+                )}
+                <Logo className="h-10 w-20" />
+                {OPERATORS[id].name}
+              </button>
+            );
+          })}
         </div>
       </fieldset>
 
       <Field label="Numéro de téléphone" error={error}>
-        <input
-          className={`${inputClass(error)} tabular-nums`}
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="+225 07 00 00 00 00"
-          value={phone}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value.replace(/[^\d+\s]/g, ''))}
-        />
+        <div className="flex gap-2">
+          <span className="flex h-12 shrink-0 items-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-[15px] font-medium tabular-nums text-slate-700">
+            {country.dial}
+          </span>
+          <input
+            className={`${inputClass(error)} tabular-nums`}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            placeholder={country.placeholder}
+            value={phone}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value.replace(/[^\d\s]/g, ''))}
+          />
+        </div>
       </Field>
 
       <PayButton>
         <Lock size={18} />
-        Payer {fcfa(PRICE_FCFA)}
+        Payer {fcfa(PRICE_FCFA)} avec {operator.name}
       </PayButton>
 
-      <p className="text-center text-sm text-slate-500">
-        Vous recevrez une notification pour valider le paiement avec votre code secret.
-      </p>
+      <p className="text-center text-sm text-slate-500">{operator.hint}</p>
     </form>
   );
 }
 
-function TransferForm({ pay, checkEmail, reference }: TransferFormProps) {
+function TransferForm({ pay, checkEmail, reference }: FormProps & { reference: string }) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -779,7 +977,7 @@ function TransferForm({ pay, checkEmail, reference }: TransferFormProps) {
         </div>
       </dl>
 
-      <PayButton>J'ai effectué le virement</PayButton>
+      <PayButton>J’ai effectué le virement</PayButton>
 
       <p className="text-center text-sm text-slate-500">
         Votre accès est activé dès réception des fonds, généralement sous 24 à 48 h.
@@ -792,7 +990,7 @@ function TransferForm({ pay, checkEmail, reference }: TransferFormProps) {
 /*  États : traitement et confirmation                                         */
 /* -------------------------------------------------------------------------- */
 
-function ProcessingOverlay({ step }: ProcessingOverlayProps) {
+function ProcessingOverlay({ step }: { step: ProcessingStep }) {
   return (
     <div
       className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-6 rounded-3xl bg-white/92 px-8 text-center backdrop-blur-sm"
@@ -814,7 +1012,15 @@ function ProcessingOverlay({ step }: ProcessingOverlayProps) {
   );
 }
 
-function Receipt({ receipt, email, onReset }: ReceiptProps) {
+function Receipt({
+  receipt,
+  email,
+  onReset,
+}: {
+  receipt: ReceiptData;
+  email: string;
+  onReset: () => void;
+}) {
   const date = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(
     receipt.date,
   );
@@ -871,13 +1077,13 @@ function Receipt({ receipt, email, onReset }: ReceiptProps) {
 /* -------------------------------------------------------------------------- */
 
 function Checkout() {
-  const [method, setMethod] = useState('card');
+  const [method, setMethod] = useState<Method['id']>('card');
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [status, setStatus] = useState<'idle' | 'processing' | 'success'>('idle');
   const [step, setStep] = useState<ProcessingStep>({ label: '', progress: 0 });
   const [error, setError] = useState('');
-  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [transferReference] = useState(makeReference);
 
   const checkEmail = (): boolean => {
@@ -886,7 +1092,7 @@ function Checkout() {
     return valid;
   };
 
-  const pay = async (steps: Feature[], result: PaymentResult = {}) => {
+  const pay: PayFn = async (steps, result = {}) => {
     setError('');
     setStatus('processing');
 
@@ -917,12 +1123,12 @@ function Checkout() {
     setError('');
   };
 
-  const selectMethod = (id: string): void => {
+  const selectMethod = (id: Method['id']): void => {
     setMethod(id);
     setError('');
   };
 
-  const formProps = { pay, checkEmail };
+  const formProps: FormProps = { pay, checkEmail };
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_30px_80px_-30px_rgba(15,23,42,0.25)]">
@@ -982,8 +1188,8 @@ function Checkout() {
 
           <div className="mt-8">
             {method === 'card' && <CardForm {...formProps} />}
-            {method === 'paypal' && <PayPalForm {...formProps} />}
             {method === 'mobile' && <MobileMoneyForm {...formProps} />}
+            {method === 'paypal' && <PayPalForm {...formProps} />}
             {method === 'transfer' && <TransferForm {...formProps} reference={transferReference} />}
           </div>
 
@@ -997,7 +1203,7 @@ function Checkout() {
               Certifié PCI DSS
             </span>
             <span className="flex items-center gap-2">
-              Propulsé par <StripeLogo className="h-5 w-auto" />
+              Cartes traitées par <StripeLogo className="h-5 w-auto" />
             </span>
           </div>
         </div>
@@ -1015,7 +1221,7 @@ function PlanSummary() {
     <aside className="rounded-3xl bg-slate-950 p-8 text-white sm:p-10 lg:sticky lg:top-24">
       <h2 className="text-lg font-medium text-slate-300">Plan Annuel</h2>
 
-      <div className="mt-5 flex items-baseline gap-3">
+      <div className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-6xl font-semibold tracking-tight tabular-nums">10 000</span>
         <span className="text-xl font-medium text-slate-400">FCFA par an</span>
       </div>
@@ -1023,7 +1229,7 @@ function PlanSummary() {
         Soit {eur(PRICE_EUR)} au taux fixe XOF/EUR, ou {fcfa(Math.round(PRICE_FCFA / 12))} par mois.
       </p>
       <p className="mt-5 inline-block rounded-full bg-emerald-400/10 px-3.5 py-1.5 text-sm font-medium text-emerald-300 ring-1 ring-emerald-400/20">
-        50 % moins cher que l'abonnement mensuel
+        50 % moins cher que l’abonnement mensuel
       </p>
 
       <ul className="mt-9 grid gap-x-6 gap-y-3.5 border-t border-white/10 pt-9 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
@@ -1056,10 +1262,64 @@ function PlanSummary() {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Couverture des moyens de paiement                                          */
+/* -------------------------------------------------------------------------- */
+
+function PaymentCoverage() {
+  return (
+    <div className="mx-auto mt-20 max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl">
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+          Payez comme vous en avez l’habitude
+        </h2>
+        <p className="mt-3 text-lg leading-relaxed text-slate-600">
+          Cartes internationales, PayPal, virement et Mobile Money dans huit pays d’Afrique de l’Ouest et
+          centrale.
+        </p>
+      </div>
+
+      <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4 border-y border-slate-200 py-6">
+        <span className="text-sm font-medium text-slate-500">Cartes et en ligne</span>
+        <VisaLogo className="h-5 w-auto" />
+        <MastercardLogo className="h-6 w-auto" />
+        <PayPalLogo className="h-5 w-auto" />
+        <StripeLogo className="h-5 w-auto" />
+      </div>
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {COUNTRIES.map((country) => (
+          <div key={country.id} className="rounded-2xl border border-slate-200 bg-white p-5">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-[15px] font-semibold text-slate-900">{country.name}</h3>
+              <span className="text-sm tabular-nums text-slate-400">{country.dial}</span>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {country.operators.map((id) => {
+                const Logo = OPERATOR_LOGOS[id];
+                return (
+                  <span key={id} title={OPERATORS[id].name}>
+                    <Logo className="h-8 w-16" />
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-6 text-sm text-slate-500">
+        Tous les paiements Mobile Money sont réglés en FCFA. Les marques citées appartiennent à leurs
+        propriétaires respectifs.
+      </p>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /*  FAQ                                                                        */
 /* -------------------------------------------------------------------------- */
 
-function FaqItem({ item, open, onToggle }: FaqItemComponentProps) {
+function FaqItem({ item, open, onToggle }: { item: FAQItem; open: boolean; onToggle: () => void }) {
   return (
     <div className="border-b border-slate-200">
       <h3>
@@ -1109,7 +1369,7 @@ export function PricingPage() {
             Un seul plan, toutes les fonctionnalités.
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
-            10 000 FCFA pour 12 mois d'accès complet. Aucun frais caché, aucune option payante.
+            10 000 FCFA pour 12 mois d’accès complet. Aucun frais caché, aucune option payante.
           </p>
         </div>
       </section>
@@ -1121,29 +1381,7 @@ export function PricingPage() {
           <Checkout />
         </div>
 
-        {/* Moyens de paiement */}
-        <div className="mx-auto mt-16 max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-slate-500">Moyens de paiement acceptés</p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            {[
-              { name: 'Visa', node: <VisaLogo className="h-5 w-auto" /> },
-              { name: 'Mastercard', node: <MastercardLogo className="h-6 w-auto" /> },
-              { name: 'PayPal', node: <PayPalLogo className="h-5 w-auto" /> },
-              { name: 'Stripe', node: <StripeLogo className="h-5 w-auto" /> },
-              { name: 'Orange Money', node: <OrangeMoneyLogo className="h-6 w-6" /> },
-              { name: 'MTN MoMo', node: <MtnLogo className="h-6 w-auto" /> },
-              { name: 'Wave', node: <WaveLogo className="h-6 w-6" /> },
-            ].map(({ name, node }) => (
-              <div
-                key={name}
-                title={name}
-                className="flex h-12 w-24 items-center justify-center rounded-xl border border-slate-200 bg-white"
-              >
-                {node}
-              </div>
-            ))}
-          </div>
-        </div>
+        <PaymentCoverage />
       </section>
 
       {/* FAQ */}
@@ -1154,7 +1392,7 @@ export function PricingPage() {
               Questions fréquentes
             </h2>
             <p className="mt-4 max-w-sm text-lg text-slate-600">
-              Tout ce qu'il faut savoir avant de vous abonner.
+              Tout ce qu’il faut savoir avant de vous abonner.
             </p>
           </div>
 
