@@ -1,51 +1,50 @@
-# ☕ Devis Café
+# Devis Café
 
-> Le créateur de devis le plus simple et le plus complet au monde.
+Le créateur de devis professionnel simple et complet pour freelances et PME.
 
-## 🚀 Fonctionnalités
+## Présentation
 
-- ✨ **36 modèles de devis** (classiques + premium)
-- 🎨 **Personnalisation complète** (couleurs, logo, signature, cachet)
-- 📄 **Export multi-format** (PDF, Word, Excel, Image, EPUB)
-- 🌍 **Multi-devises** (FCFA, EUR, USD, et 30+ autres)
-- 🌐 **Multi-langues** (Français, Anglais)
-- 🔒 **Sécurité** (RLS, isolation multi-tenant)
-- 💳 **Abonnement** : 10 000 FCFA/an (essai gratuit 7 jours)
+Devis Café permet de créer, gérer et envoyer des devis professionnels en quelques minutes. L'application offre une interface moderne et intuitive avec des fonctionnalités avancées d'export et de personnalisation.
 
-## 🛠️ Stack technique
+## Fonctionnalités
 
-- **Frontend** : React + TypeScript + Vite
-- **Styling** : Tailwind CSS v4
-- **Backend** : Supabase (PostgreSQL + Auth + Storage)
-- **Routing** : React Router v6
+- 36 modèles de devis (classiques et premium)
+- Personnalisation complète (couleurs, logo, signature, cachet)
+- Export multi-format : PDF, Word, Excel, Image, EPUB
+- Support multi-devises (FCFA, EUR, USD et 30+ autres)
+- Interface multi-langues (Français, Anglais)
+- Sécurité renforcée avec isolation multi-tenant et RLS
+- Responsive design (mobile, tablette, desktop)
 
-## 📦 Installation
+## Stack Technique
 
-\`\`\`bash
+**Frontend**
+- React 18 avec TypeScript
+- Vite pour le build et le développement
+- Tailwind CSS v4 pour le styling
+- React Router v6 pour la navigation
+- Lucide React pour les icônes
+
+**Backend**
+- Supabase (PostgreSQL)
+- Authentication Supabase
+- Row Level Security (RLS)
+- Storage pour les fichiers
+
+**Déploiement**
+- Vercel pour l'hébergement et le CI/CD
+
+## Installation
+
+### Prérequis
+
+- Node.js version 18 ou supérieure
+- npm ou yarn
+- Un compte Supabase
+
+### Étapes d'installation
+
+1. Cloner le dépôt
+```bash
 git clone https://github.com/godfriend-lab/devis-cafe.git
 cd devis-cafe
-npm install
-\`\`\`
-
-## ⚙️ Configuration
-
-1. Crée un projet sur [Supabase](https://supabase.com)
-2. Copie les clés dans un fichier `.env` :
-\`\`\`env
-VITE_SUPABASE_URL=https://ton-projet.supabase.co
-VITE_SUPABASE_ANON_KEY=ta-clé-anon
-\`\`\`
-3. Lance le serveur :
-\`\`\`bash
-npm run dev
-\`\`\`
-
-## 💰 Pricing
-
-- **Essai gratuit** : 7 jours
-- **Abonnement** : 10 000 FCFA / an (renouvellement manuel)
-- **Paiement** : Mobile Money, Carte bancaire
-
-## 📝 License
-
-MIT © 2026 Devis Café

@@ -48,7 +48,7 @@ const testimonials: Testimonial[] = [
     title: 'Vos devis prêts depuis votre téléphone.',
     text: 'Je crée mes devis en quelques minutes depuis mon téléphone. C’est devenu un indispensable pour mon activité.',
     name: 'Alejandro Santofimio',
-    role: 'Artisan électricien',
+    role: 'Responsable Commercial',
     initials: 'AS',
     image: '/images/temoignage-david.png',
     bg: '#f7cfdc',
