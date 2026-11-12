@@ -83,7 +83,7 @@ export function OfflinePage() {
         <p className="text-slate-600 mb-8 leading-relaxed">
           {isReconnecting 
             ? 'Nous rétablissons la connexion. Veuillez patienter...'
-            : 'Pas de souci, vos données sont sauvegardées localement. Reconnectez-vous pour synchroniser.'}
+            : 'Pas de souci, vos données sont sauvegardées. Reconnectez-vous pour synchroniser.'}
         </p>
 
         {/* Indicateur de statut */}
