@@ -2,29 +2,37 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    
+    <!-- Viewport optimisé pour PWA (gère les encoches iPhone/Android) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
     
     <!-- SEO & Informations -->
     <title>Devis Café | Créateur de devis professionnels</title>
     <meta name="description" content="Créez, gérez et envoyez des devis professionnels en quelques minutes. Simple, rapide et conçu pour les freelances et entreprises." />
     <meta name="author" content="Devis Café" />
     <meta name="robots" content="index, follow" />
+    <meta name="keywords" content="devis, facture, freelance, PME, création de devis, Afrique, FCFA" />
     
-    <!-- Mobile & PWA (Progressive Web App) -->
+    <!-- PWA & Configuration Mobile (Android & iOS) -->
     <meta name="theme-color" content="#7C3AED" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Devis Café" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="msapplication-TileColor" content="#7C3AED" />
+    <meta name="msapplication-tap-highlight" content="no" />
     
-    <!-- Favicons (Assurez-vous que ces fichiers sont dans le dossier public/) -->
+    <!-- Favicons & Icônes PWA (Doivent être dans le dossier public/) -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Le lien vers le manifest.webmanifest sera injecté automatiquement par le plugin Vite PWA -->
     
-    <!-- Préconnexion pour améliorer les performances de chargement des polices -->
+    <!-- Préconnexion pour améliorer les performances de chargement -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   </head>
+  
   <body class="antialiased bg-slate-50 text-slate-900">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

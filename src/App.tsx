@@ -3,6 +3,12 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { supabase } from './lib/supabase';
 
 // =========================================================================
+// COMPOSANTS GLOBAUX (PWA & Hors ligne)
+// =========================================================================
+import { InstallPrompt } from './components/InstallPrompt';
+import { OfflinePage } from './components/OfflinePage';
+
+// =========================================================================
 // PAGES PUBLIQUES
 // =========================================================================
 import { LandingPage } from './pages/landing/LandingPage';
@@ -226,6 +232,17 @@ export default function App() {
         {/* ================================================================= */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+
+      {/* ========================================================================= */}
+      {/* COMPOSANTS GLOBAUX (Affichés par-dessus toutes les routes)                */}
+      {/* ========================================================================= */}
+      
+      {/* 1. Prompt d'installation PWA (Android/iOS) */}
+      <InstallPrompt />
+      
+      {/* 2. Page de détection Hors Ligne (Offline) */}
+      <OfflinePage />
+      
     </BrowserRouter>
   );
 }
