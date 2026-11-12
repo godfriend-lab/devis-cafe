@@ -17,6 +17,20 @@ import { PricingPage } from './pages/pricing/PricingPage';
 import { FAQPage } from './pages/faq/FAQPage';
 
 // =========================================================================
+// PARTENARIATS
+// =========================================================================
+import { BecomePartner } from './pages/partnerships/BecomePartner';
+
+// =========================================================================
+// PAGES LÉGALES
+// =========================================================================
+import { PrivacyPolicy } from './pages/legal/PrivacyPolicy';
+import { TermsOfService } from './pages/legal/TermsOfService';
+import { AboutUs } from './pages/company/AboutUs';
+import { OurServices } from './pages/company/OurServices';
+import { OurProjects } from './pages/company/OurProjects';
+
+// =========================================================================
 // AUTHENTIFICATION
 // =========================================================================
 import { RegisterPage } from './pages/auth/RegisterPage';
@@ -154,15 +168,32 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* ================================================================= */}
-        {/* PAGES PUBLIQUES (accessibles sans connexion)                        */}
+        {/* 1. PAGES PUBLIQUES (accessibles sans connexion)                   */}
         {/* ================================================================= */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/faq" element={<FAQPage />} />
+        {/* ================================================================= */}
+        {/* COMPANY                                                             */}
+        {/* ================================================================= */}
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/services" element={<OurServices />} />
+        <Route path="/projects" element={<OurProjects />} />
 
         {/* ================================================================= */}
-        {/* AUTHENTIFICATION (redirige si déjà connecté)                        */}
+        {/* 2. PARTENARIATS                                                   */}
+        {/* ================================================================= */}
+        <Route path="/become-partner" element={<BecomePartner />} />
+
+        {/* ================================================================= */}
+        {/* 3. PAGES LÉGALES                                                  */}
+        {/* ================================================================= */}
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+
+        {/* ================================================================= */}
+        {/* 4. AUTHENTIFICATION (redirige vers /dashboard si déjà connecté)   */}
         {/* ================================================================= */}
         <Route
           path="/login"
@@ -190,7 +221,7 @@ export default function App() {
         />
 
         {/* ================================================================= */}
-        {/* DASHBOARD (protégé - nécessite une connexion)                       */}
+        {/* 5. DASHBOARD (protégé - nécessite une connexion active)           */}
         {/* ================================================================= */}
         <Route
           path="/dashboard"
@@ -200,19 +231,12 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          {/* Page d'accueil du dashboard */}
           <Route index element={<DashboardPage />} />
-
-          {/* Gestion des devis */}
           <Route path="quotes" element={<QuotesHistoryPage />} />
           <Route path="quotes/new" element={<CreateQuotePage />} />
           <Route path="quotes/:id" element={<QuoteDetailPage />} />
           <Route path="quotes/:id/edit" element={<EditQuotePage />} />
-
-          {/* Fonctionnalités Coming Soon */}
           <Route path="coming-soon/:featureId" element={<ComingSoonPage />} />
-
-          {/* Paramètres */}
           <Route path="settings" element={
             <div className="p-8 text-center text-slate-500">
               <h2 className="text-xl font-semibold mb-2">Paramètres</h2>
@@ -222,13 +246,13 @@ export default function App() {
         </Route>
 
         {/* ================================================================= */}
-        {/* REDIRECTIONS UTILES                                                 */}
+        {/* 6. REDIRECTIONS UTILES                                            */}
         {/* ================================================================= */}
         <Route path="/app" element={<Navigate to="/dashboard" replace />} />
         <Route path="/home" element={<Navigate to="/" replace />} />
 
         {/* ================================================================= */}
-        {/* 404 - PAGE NON TROUVÉE                                              */}
+        {/* 7. 404 - PAGE NON TROUVÉE (doit toujours être la dernière route)  */}
         {/* ================================================================= */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
@@ -236,13 +260,8 @@ export default function App() {
       {/* ========================================================================= */}
       {/* COMPOSANTS GLOBAUX (Affichés par-dessus toutes les routes)                */}
       {/* ========================================================================= */}
-      
-      {/* 1. Prompt d'installation PWA (Android/iOS) */}
       <InstallPrompt />
-      
-      {/* 2. Page de détection Hors Ligne (Offline) */}
       <OfflinePage />
-      
     </BrowserRouter>
   );
 }

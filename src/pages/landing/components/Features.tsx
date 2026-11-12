@@ -1,8 +1,8 @@
 import { ChevronDown } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
-/*  Images à fournir                                                   */
-/*  Mettez la photo de la femme (PNG détouré, idéalement) ici :        */
+/*  Image à fournir                                                    */
+/*  Photo de la femme (PNG détouré, idéalement) :                      */
 /*  public/images/cliente-devis-cafe.png                               */
 /* ------------------------------------------------------------------ */
 
@@ -10,7 +10,7 @@ const PERSON_SRC = '/images/cliente-devis-cafe.png';
 const PERSON_NAME = 'Afi';
 
 /* ------------------------------------------------------------------ */
-/*  Vrais logos des applications (SVG officiels, en ligne, sans         */
+/*  Vrais logos des applications (SVG officiels intégrés, sans          */
 /*  dépendance à installer)                                            */
 /* ------------------------------------------------------------------ */
 
@@ -36,10 +36,11 @@ const LOGOS: Record<string, Logo> = {
 
 type Tile = { key: string; name: string; bg: string; pad: number };
 
-// 15 applications : 3 rangées de 5, comme sur le modèle
+// 15 applications : 3 rangées de 5
+// LinkedIn : le logo bleu officiel sur tuile blanche (il était invisible sur fond bleu)
 const tiles: Tile[] = [
   { key: 'google-analytics', name: 'Google Analytics', bg: '#ffffff', pad: 18 },
-  { key: 'linkedin-icon', name: 'LinkedIn', bg: '#0a66c2', pad: 0 },
+  { key: 'linkedin-icon', name: 'LinkedIn', bg: '#ffffff', pad: 15 },
   { key: 'openai-icon', name: 'ChatGPT', bg: '#ffffff', pad: 16 },
   { key: 'google-drive', name: 'Google Drive', bg: '#ffffff', pad: 15 },
   { key: 'dropbox', name: 'Dropbox', bg: '#0061ff', pad: 16 },
@@ -56,6 +57,12 @@ const tiles: Tile[] = [
   { key: 'microsoft-teams', name: 'Microsoft Teams', bg: '#ffffff', pad: 14 },
   { key: 'google-ads', name: 'Google Ads', bg: '#ffffff', pad: 15 },
 ];
+
+// 3 rangées de 8 tuiles, la grille est rognée volontairement sur les bords
+const gridTiles: Tile[] = Array.from(
+  { length: 24 },
+  (_, i) => tiles[(Math.floor(i / 8) * 5 + (i % 8)) % tiles.length],
+);
 
 /* ------------------------------------------------------------------ */
 /*  Petits composants                                                  */
@@ -151,8 +158,9 @@ function Monogram({ bg, fg, label }: { bg: string; fg: string; label: string }) 
   );
 }
 
+/** Bouton de carte : aucun lien, simple bouton avec survol soigné */
 const CARD_BUTTON =
-  'inline-flex items-center rounded-lg px-4 py-2.5 text-[15px] font-semibold text-[#0e1318] shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(0,0,0,0.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none';
+  'inline-flex cursor-pointer select-none items-center rounded-lg px-4 py-2.5 text-[15px] font-semibold text-[#0e1318] shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:shadow-[0_10px_22px_-6px_rgba(0,0,0,0.3)] active:translate-y-0 active:shadow-[0_2px_6px_rgba(0,0,0,0.2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white motion-reduce:transition-none motion-reduce:hover:translate-y-0';
 
 /* ------------------------------------------------------------------ */
 /*  Section                                                            */
@@ -178,28 +186,26 @@ export function Features() {
           <h2 className="max-w-[18ch] text-[1.75rem] font-medium leading-[1.2] tracking-[-0.01em] sm:text-[1.95rem]">
             Connectez Devis Café à vos applis préférées
           </h2>
-          <a href="/integrations" className={`${CARD_BUTTON} mt-6 bg-[#eef8f0]`}>
+          <button type="button" className={`${CARD_BUTTON} relative z-10 mt-6 bg-[#eef8f0]`}>
             Découvrir les intégrations
-          </a>
+          </button>
 
           {/* Grille d'applications, volontairement rognée sur les bords */}
           <ul
             className="absolute -bottom-4 -left-5 grid grid-cols-[repeat(8,84px)] gap-2.5"
             aria-label="Applications compatibles"
           >
-            {Array.from({ length: 24 }, (_, i) => tiles[(Math.floor(i / 8) * 5 + (i % 8)) % tiles.length]).map(
-              (tile, i) => (
-                <li
-                  key={`${tile.key}-${i}`}
-                  role="img"
-                  aria-label={tile.name}
-                  className="aspect-square overflow-hidden rounded-xl shadow-[0_2px_6px_rgba(0,0,0,0.1)]"
-                  style={{ backgroundColor: tile.bg, padding: tile.pad }}
-                >
-                  <BrandLogo logo={LOGOS[tile.key]} />
-                </li>
-              ),
-            )}
+            {gridTiles.map((tile, i) => (
+              <li
+                key={`${tile.key}-${i}`}
+                role="img"
+                aria-label={tile.name}
+                className="aspect-square overflow-hidden rounded-xl shadow-[0_2px_6px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-105 motion-reduce:transition-none motion-reduce:hover:scale-100"
+                style={{ backgroundColor: tile.bg, padding: tile.pad }}
+              >
+                <BrandLogo logo={LOGOS[tile.key]} />
+              </li>
+            ))}
           </ul>
         </article>
 
@@ -214,9 +220,9 @@ export function Features() {
           <h2 className="max-w-[20ch] text-[1.75rem] font-medium leading-[1.2] tracking-[-0.01em] sm:text-[1.95rem]">
             Pour les indépendants aux grandes ambitions
           </h2>
-          <a href="/tarifs" className={`${CARD_BUTTON} relative z-10 mt-6 bg-[#fff1ee]`}>
+          <button type="button" className={`${CARD_BUTTON} relative z-10 mt-6 bg-[#fff1ee]`}>
             Découvrir Devis Café Pro
-          </a>
+          </button>
 
           {/* Scène : dessinée à 850 px de large, réduite sur petits écrans */}
           <div
@@ -241,7 +247,7 @@ export function Features() {
                 <span className="flex h-[28px] w-[28px] items-center justify-center rounded-md border-2 border-[#0e1318] text-[11px] font-black leading-none">
                   DC
                 </span>
-                <span className="text-[19px] font-bold tracking-[-0.01em]">Identité visuelle de Afi</span>
+                <span className="text-[19px] font-bold tracking-[-0.01em]">Identité visuelle de {PERSON_NAME}</span>
                 <ChevronDown size={18} strokeWidth={2.5} />
               </div>
 
@@ -288,7 +294,7 @@ export function Features() {
               <path d="M3 3l8 18 2.6-7.4L21 11z" fill="#c13dff" stroke="#c13dff" strokeWidth="1.5" strokeLinejoin="round" />
             </svg>
             <span className="absolute left-[34px] top-[34px] -rotate-[8deg] rounded-xl border-2 border-white/70 bg-[#e83ad6] px-3.5 py-1 text-[19px] font-bold text-white shadow-[0_4px_14px_rgba(0,0,0,0.2)]">
-              {PERSON_NAME }
+              {PERSON_NAME}
             </span>
           </div>
         </article>

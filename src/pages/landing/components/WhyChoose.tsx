@@ -257,18 +257,21 @@ export function WhyChoose() {
         <ul className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9">
           {categories.map(({ label, slug, Icon }) => (
             <li key={slug}>
-              <a
-                href={`/devis/nouveau?categorie=${slug}`}
-                className="flex h-[104px] flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-3.5 shadow-[0_2px_10px_rgba(0,0,0,0.07)] transition-shadow hover:shadow-[0_6px_20px_rgba(0,0,0,0.14)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1d1f23]"
+              <div
+                className="group flex h-[104px] cursor-pointer select-none flex-col justify-between rounded-xl border border-slate-200/70 bg-white p-3.5 shadow-[0_2px_10px_rgba(0,0,0,0.07)] will-change-transform transition-[transform,box-shadow,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-2 hover:scale-[1.03] hover:border-slate-200 hover:shadow-[0_28px_44px_-14px_rgba(15,23,42,0.28),0_10px_18px_-10px_rgba(15,23,42,0.16)] active:-translate-y-1 active:scale-[1.01] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100"
               >
-                <Icon size={24} strokeWidth={1.5} className="text-[#404145]" />
+                <Icon
+                  size={24}
+                  strokeWidth={1.5}
+                  className="text-[#404145] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-110"
+                />
                 <span className="text-[13px] font-medium leading-tight text-[#404145]">{label}</span>
-              </a>
+              </div>
             </li>
           ))}
         </ul>
 
-        {/* ============ 2. Services populaires ============ */}
+        {/* ============ 2. Services populaires (sans redirection) ============ */}
         <h2 className="mb-8 mt-16 text-[2.4rem] font-normal leading-tight tracking-[-0.02em] text-[#404145] sm:text-5xl">
           Devis populaires
         </h2>
@@ -277,20 +280,19 @@ export function WhyChoose() {
           <div
             ref={scrollerRef}
             onScroll={updateArrows}
-            className="wc-scroll -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-1"
+            className="wc-scroll -mx-1 -mb-10 -mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-12 pt-4"
           >
             {popular.map(({ title, slug, Icon, tone, accent }) => (
-              <a
+              <div
                 key={slug}
-                href={`/devis/nouveau?modele=${encodeURIComponent(slug)}`}
-                className="group flex h-[216px] w-[165px] shrink-0 snap-start flex-col rounded-xl p-[5px] outline-offset-2 transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#1d1f23] lg:w-[calc((100%-5rem)/6)]"
+                className="group flex h-[216px] w-[165px] shrink-0 cursor-pointer select-none snap-start flex-col rounded-xl p-[5px] shadow-[0_2px_10px_rgba(0,0,0,0.07)] will-change-transform transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-2 hover:scale-[1.03] hover:shadow-[0_28px_44px_-14px_rgba(15,23,42,0.28),0_10px_18px_-10px_rgba(15,23,42,0.16)] active:-translate-y-1 active:scale-[1.01] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 lg:w-[calc((100%-5rem)/6)]"
                 style={{ backgroundColor: CARD_BG }}
               >
                 <h3 className="px-2.5 pb-2 pt-3 text-[15px] font-bold leading-snug text-white">{title}</h3>
                 <div className="min-h-0 flex-1">
                   <TradeIcon Icon={Icon} tone={tone} accent={accent} />
                 </div>
-              </a>
+              </div>
             ))}
           </div>
 
