@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { WifiOff, Wifi, RefreshCw, Coffee, Signal } from 'lucide-react';
+import { WifiOff, RefreshCw, Coffee, Signal } from 'lucide-react';
 
 export function OfflinePage() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
